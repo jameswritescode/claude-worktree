@@ -2,6 +2,8 @@
 
 module Cwt
   class Model
+    DEFAULT_MODEL = "claude"
+
     attr_reader :repository, :selection_index, :mode, :input_buffer, :message, :running, :fetch_generation, :filter_query
     attr_accessor :resume_to  # Worktree object or nil
 
@@ -16,6 +18,14 @@ module Cwt
       @running = true
       @fetch_generation = 0
       @resume_to = nil
+    end
+
+    def agent
+      ENV.fetch("CWT_AGENT", DEFAULT_MODEL).strip.then do |value|
+        raise ArgumentError, "CWT_AGENT cannot be blank" if value.empty?
+
+        value
+      end
     end
 
     def worktrees

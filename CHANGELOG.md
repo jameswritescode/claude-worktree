@@ -3,6 +3,8 @@
 ### Added
 - **Worktrees for existing branches**: Allow creation of worktrees from branches that already exist.
 - **Paste support**: Support pasting into new branch and filtering dialogs.
+- **Alt+Enter shortcut**: Use Alt+Enter to open a shell straight into a worktree.
+- **CWT_AGENT**: Use `$CWT_AGENT` for setting agent cli command to use.
 
 ## [0.1.4] - 2026-01-30
 

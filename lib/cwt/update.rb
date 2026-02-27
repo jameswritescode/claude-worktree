@@ -23,7 +23,7 @@ module Cwt
           model.set_mode(:normal)
           model.set_filter(String.new) # Clear filter
           # Auto-enter the new session
-          { type: :resume_worktree, worktree: result[:worktree] }
+          { type: :resume_worktree, worktree: result[:worktree], shell_only: message[:shell_only] || false }
         else
           model.set_message("Error: #{result[:error]}")
           nil
@@ -47,7 +47,7 @@ module Cwt
           nil
         end
       when :resume_worktree
-        { type: :suspend_and_resume, worktree: message[:worktree] }
+        { type: :suspend_and_resume, worktree: message[:worktree], shell_only: message[:shell_only] || false }
       when :update_status
         return nil if message[:generation] != model.fetch_generation
 
@@ -65,7 +65,9 @@ module Cwt
 
     def self.handle_key(model, event)
       if model.mode == :creating
-        if event.enter?
+        if event.alt_enter?
+          return { type: :create_worktree, name: model.input_buffer, shell_only: true }
+        elsif event.enter?
           return { type: :create_worktree, name: model.input_buffer }
         elsif event.esc?
           model.set_mode(:normal)
@@ -75,16 +77,11 @@ module Cwt
           model.input_append(event.to_s)
         end
       elsif model.mode == :filtering
-        if event.enter?
-          # Select current item and resume
-          wt = model.selected_worktree
-          if wt
-            model.set_filter(String.new) # Clear filter
-            model.set_mode(:normal) # Exit filter mode on selection
-            return { type: :resume_worktree, worktree: wt }
-          else
-            model.set_mode(:normal)
-          end
+        if event.alt_enter? || event.enter?
+          cmd = resume_selected(model, shell_only: event.alt_enter?)
+          return cmd if cmd
+
+          model.set_mode(:normal)
         elsif event.esc?
           model.set_filter(String.new) # Clear filter
           model.set_mode(:normal)
@@ -115,17 +112,23 @@ module Cwt
         elsif event.D? # Shift+d
           wt = model.selected_worktree
           return { type: :delete_worktree, worktree: wt, force: true } if wt
-        elsif event.enter?
-          wt = model.selected_worktree
-          if wt
-            model.set_filter(String.new) # Clear filter on resume
-            return { type: :resume_worktree, worktree: wt }
-          end
+        elsif event.alt_enter? || event.enter?
+          cmd = resume_selected(model, shell_only: event.alt_enter?)
+          return cmd if cmd
         elsif event.r?
           return { type: :refresh_list }
         end
       end
       nil
+    end
+
+    def self.resume_selected(model, shell_only: false)
+      wt = model.selected_worktree
+      return nil unless wt
+
+      model.set_filter(String.new)
+      model.set_mode(:normal)
+      { type: :resume_worktree, worktree: wt, shell_only: shell_only }
     end
 
     def self.handle_paste(model, content)

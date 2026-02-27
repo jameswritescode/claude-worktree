@@ -16,6 +16,28 @@ module Cwt
       modal_border: { fg: :magenta }
     }.freeze
 
+    KEY_BINDINGS = {
+      creating:  [
+        ['Enter', 'Confirm'],
+        ['A-Enter', 'Shell'],
+        ['Esc', 'Cancel'],
+      ],
+      filtering: [
+        ['Type', 'Search'],
+        ['Enter', 'Select'],
+        ['A-Enter', 'Shell'],
+        ['Esc', 'Reset'],
+      ],
+      normal:    [
+        ['n', 'New'],
+        ['/', 'Filter'],
+        ['Enter', 'Resume'],
+        ['A-Enter', 'Shell'],
+        ['d', 'Delete'],
+        ['q', 'Quit'],
+      ],
+    }.freeze
+
     def self.draw(model, tui, frame)
       content_height = [model.visible_worktrees.size + 6, frame.area.height].min
 
@@ -39,7 +61,7 @@ module Cwt
         ]
       )
 
-      draw_header(tui, frame, header_area)
+      draw_header(tui, frame, header_area, model)
       draw_table(model, tui, frame, list_area)
       draw_footer(model, tui, frame, footer_area)
 
@@ -59,9 +81,9 @@ module Cwt
       tui.rect(x: x, y: y, width: w, height: h)
     end
 
-    def self.draw_header(tui, frame, area)
+    def self.draw_header(tui, frame, area, model)
       title = tui.paragraph(
-        text: " CWT v#{Claude::Worktree::VERSION} • WORKTREE MANAGER ",
+        text: " CWT v#{Claude::Worktree::VERSION} • #{model.agent.upcase} ",
         alignment: :center,
         style: tui.style(**THEME[:header]),
         block: tui.block(
@@ -128,27 +150,14 @@ module Cwt
     end
 
     def self.draw_footer(model, tui, frame, area)
-      keys = []
+      key_style = tui.style(bg: :dark_gray, fg: :white)
+      desc_style = tui.style(**THEME[:dim])
 
-      add_key = lambda { |key, desc|
-        keys << tui.text_span(content: " #{key} ", style: tui.style(bg: :dark_gray, fg: :white))
-        keys << tui.text_span(content: " #{desc} ", style: tui.style(**THEME[:dim]))
-      }
-
-      case model.mode
-      when :creating
-        add_key.call('Enter', 'Confirm')
-        add_key.call('Esc', 'Cancel')
-      when :filtering
-        add_key.call('Type', 'Search')
-        add_key.call('Enter', 'Select')
-        add_key.call('Esc', 'Reset')
-      else
-        add_key.call('n', 'New')
-        add_key.call('/', 'Filter')
-        add_key.call('Enter', 'Resume')
-        add_key.call('d', 'Delete')
-        add_key.call('q', 'Quit')
+      keys = KEY_BINDINGS.fetch(model.mode, KEY_BINDINGS[:normal]).flat_map do |key, desc|
+        [
+          tui.text_span(content: " #{key} ", style: key_style),
+          tui.text_span(content: " #{desc} ", style: desc_style)
+        ]
       end
 
       msg_style = if model.message.downcase.include?('error') || model.message.downcase.include?('warning')

@@ -86,6 +86,10 @@ module Cwt
         end
       end
 
+      # Shut down worker threads
+      POOL_SIZE.times { @worker_queue << nil }
+      @workers.each { |w| w.join(1) }
+
       # After TUI exits, cd into last worktree if one was resumed
       if model.resume_to && model.resume_to.exists?
         Dir.chdir(model.resume_to.path)
@@ -118,7 +122,7 @@ module Cwt
         result = Update.handle(model, cmd)
         handle_command(result, model, tui, main_queue)
       when :resume_worktree, :suspend_and_resume
-        suspend_tui_and_run(cmd[:worktree], model, tui)
+        suspend_tui_and_run(cmd[:worktree], model, tui, shell_only: cmd[:shell_only] || false)
         Update.refresh_list(model)
         start_background_fetch(model, main_queue)
       end
@@ -159,7 +163,7 @@ module Cwt
       end
     end
 
-    def self.suspend_tui_and_run(worktree, model, tui)
+    def self.suspend_tui_and_run(worktree, model, tui, shell_only: false)
       RatatuiRuby.restore_terminal
 
       puts "\e[H\e[2J" # Clear screen
@@ -176,13 +180,18 @@ module Cwt
         end
       end
 
-      puts "Launching claude in #{worktree.path}..."
+      command = shell_only ? ENV.fetch("SHELL", "/bin/zsh") : model.agent
+      if shell_only
+        puts "Entering shell in #{worktree.path}..."
+      else
+        puts "Launching #{model.agent} in #{worktree.path}..."
+      end
       begin
         Dir.chdir(worktree.path) do
           if defined?(Bundler)
-            Bundler.with_unbundled_env { system("claude") }
+            Bundler.with_unbundled_env { system(command) }
           else
-            system("claude")
+            system(command)
           end
         end
         # Track last resumed worktree for exit

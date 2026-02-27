@@ -69,6 +69,14 @@ npm ci
 echo "Ready to rock!"
 ```
 
+### Agent Command
+
+By default, `cwt` launches `claude` when entering a worktree. To use a different agent:
+
+```bash
+export CWT_AGENT=pi
+```
+
 ### Base Branch
 
 By default, new worktrees branch off of `HEAD`. To always branch from a specific starting point (e.g., `main`), set the `CWT_START_POINT` environment variable:
@@ -83,8 +91,9 @@ Run `cwt` in the root of any Git repository.
 
 | Key | Action |
 | :--- | :--- |
-| **`n`** | **New Session** (Creates worktree & launches `claude`) |
-| **`Enter`** | **Resume** (Suspends TUI, enters worktree) |
+| **`n`** | **New Session** (Creates worktree & launches agent) |
+| **`Enter`** | **Resume** (Launches configured agent in worktree) |
+| **`Alt+Enter`** | **Shell** (Enters worktree without launching agent) |
 | **`/`** | **Filter** (Search by branch or folder name) |
 | **`d`** | **Safe Delete** (Checks for unmerged changes first) |
 | **`D`** | **Force Delete** (Shift+d - The "I know what I'm doing" option) |

@@ -179,5 +179,16 @@ module Cwt
 
       assert_equal "prefix-suffix", @model.input_buffer
     end
+
+    def test_raises_when_agent_is_blank
+      original = ENV["CWT_AGENT"]
+      ENV["CWT_AGENT"] = ""
+
+      assert_raises(ArgumentError) do
+        @model.agent
+      end
+    ensure
+      original ? ENV["CWT_AGENT"] = original : ENV.delete("CWT_AGENT")
+    end
   end
 end
